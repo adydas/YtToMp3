@@ -108,14 +108,24 @@ async function extractYouTubeStreams(url) {
     audioFormats.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
     const bestAudio = audioFormats[0];
 
-    if (!bestAudio.url) {
-      console.error('Best audio has no URL:', bestAudio);
-      throw new Error('Audio stream has no URL');
+    console.log('Best audio format:', bestAudio);
+
+    // Check if stream has direct URL or requires signature decoding
+    if (!bestAudio.url && !bestAudio.signatureCipher) {
+      console.error('Audio stream has neither url nor signatureCipher:', bestAudio);
+      throw new Error('Audio stream has no URL or cipher');
+    }
+
+    if (bestAudio.signatureCipher) {
+      console.warn('Stream uses signatureCipher (requires complex decoding)');
+      console.log('signatureCipher:', bestAudio.signatureCipher.substring(0, 100) + '...');
+      throw new Error('Stream requires signature decoding (falling back to server-side)');
     }
 
     console.log('Selected audio:', {
       bitrate: bestAudio.bitrate,
-      mimeType: bestAudio.mimeType
+      mimeType: bestAudio.mimeType,
+      hasUrl: !!bestAudio.url
     });
 
     return {
