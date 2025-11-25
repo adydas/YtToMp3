@@ -52,6 +52,11 @@ YouTube actively works to prevent automated downloads and frequently updates the
 2. Waiting a few minutes and retrying
 3. Using a different IP/network
 
+**Want better success rates?** See [CLIENTSIDE_OPTIONS.md](CLIENTSIDE_OPTIONS.md) for:
+- **Client-side extraction** (95-99% success) - Extract streams in user's browser
+- **Full browser-based conversion** (100% bypass) - No server needed
+- Implementation guides for both approaches
+
 For persistent issues, see the troubleshooting section in [CLOUDRUN.md](CLOUDRUN.md).
 
 ## Prerequisites
