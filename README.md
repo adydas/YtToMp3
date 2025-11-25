@@ -6,7 +6,7 @@ A simple web application to convert YouTube videos to MP3 audio files.
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/YtToMp3.git
+git clone https://github.com/adydas/YtToMp3.git
 cd YtToMp3
 
 # Install dependencies
