@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube to MP3 Converter</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>🎵 YouTube to MP3</h1>
+      <p class="subtitle">Convert your YouTube videos to MP3 audio files</p>
+
+      <div class="input-group">
+        <input
+          type="text"
+          id="youtubeUrl"
+          placeholder="Paste YouTube URL here..."
+          autocomplete="off"
+        >
+        <button id="convertBtn" onclick="convertVideo()">Convert</button>
+      </div>
+
+      <div id="status" class="status hidden"></div>
+      <div id="progress" class="progress hidden">
+        <div class="progress-bar"></div>
+      </div>
+      <div id="result" class="result hidden"></div>
+    </div>
+
+    <div class="info">
+      <h3>How to use:</h3>
+      <ol>
+        <li>Copy the URL of your YouTube video</li>
+        <li>Paste it in the input field above</li>
+        <li>Click "Convert" and wait for the process to complete</li>
+        <li>Download your MP3 file</li>
+      </ol>
+      <p class="note">⚠️ Only convert videos that you own or have permission to use.</p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

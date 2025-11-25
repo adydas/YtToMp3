@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  yt-to-mp3:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MAX_FILE_AGE_MS=3600000
+      - CLEANUP_INTERVAL_MS=600000
+    volumes:
+      - ./downloads:/app/downloads
+    restart: unless-stopped
