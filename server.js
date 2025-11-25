@@ -49,6 +49,67 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Helper function to try Cobalt.tools API
+async function tryWithCobalt(url) {
+  console.log('Trying Cobalt.tools API for:', url);
+
+  try {
+    const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
+    // Call Cobalt API
+    const response = await fetch('https://co.wuk.sh/api/json', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: url,
+        aFormat: 'mp3',
+        isAudioOnly: true,
+        filenamePattern: 'basic'
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.status === 'error') {
+      throw new Error(data.text || 'Cobalt API error');
+    }
+
+    if (!data.url) {
+      throw new Error('No download URL returned from Cobalt');
+    }
+
+    console.log('Cobalt.tools successful, downloading MP3...');
+
+    // Download the MP3 from Cobalt's URL
+    const mp3Response = await fetch(data.url);
+    if (!mp3Response.ok) {
+      throw new Error(`Failed to download MP3: ${mp3Response.statusText}`);
+    }
+
+    const timestamp = Date.now();
+    const filename = `video-${timestamp}.mp3`;
+    const outputPath = path.join(downloadsDir, filename);
+
+    const buffer = await mp3Response.buffer();
+    fs.writeFileSync(outputPath, buffer);
+
+    console.log('Cobalt download complete:', filename);
+
+    return {
+      success: true,
+      filename: filename,
+      title: data.filename || 'video',
+      method: 'cobalt'
+    };
+  } catch (error) {
+    console.log('Cobalt.tools failed:', error.message);
+    throw error;
+  }
+}
+
 // Route to convert YouTube video to MP3
 app.post('/api/convert', async (req, res) => {
   try {
@@ -63,6 +124,16 @@ app.post('/api/convert', async (req, res) => {
       return res.status(400).json({ error: 'Invalid YouTube URL' });
     }
 
+    // Try Cobalt.tools first (no auth needed, better success rate)
+    try {
+      const result = await tryWithCobalt(url);
+      console.log('Success with Cobalt.tools');
+      return res.json(result);
+    } catch (cobaltError) {
+      console.log('Cobalt failed, falling back to yt-dlp...');
+    }
+
+    // Fall back to yt-dlp if Cobalt fails
     const timestamp = Date.now();
     const outputTemplate = path.join(downloadsDir, `video-${timestamp}.%(ext)s`);
 
@@ -78,7 +149,7 @@ app.post('/api/convert', async (req, res) => {
       --no-check-certificate \
       -o "${outputTemplate}" "${url}"`;
 
-    console.log('Downloading and converting:', url);
+    console.log('Downloading and converting with yt-dlp:', url);
     console.log('Using cookies:', fs.existsSync(cookiesPath) ? 'Yes' : 'No');
     const { stdout, stderr } = await execAsync(command, { maxBuffer: 1024 * 1024 * 10 });
 
@@ -100,7 +171,8 @@ app.post('/api/convert', async (req, res) => {
     res.json({
       success: true,
       filename: mp3File,
-      title: videoTitle
+      title: videoTitle,
+      method: 'yt-dlp'
     });
 
   } catch (error) {

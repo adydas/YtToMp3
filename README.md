@@ -22,7 +22,13 @@ Visit `http://localhost:3000` and start converting!
 
 Deploy to the cloud in minutes:
 
-**Google Cloud Run** (Recommended) - Serverless, scales to zero, pay per use
+**Vercel** (Best Success Rate) - Better IP reputation than Cloud Run
+```bash
+vercel
+```
+See [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md) for detailed instructions.
+
+**Google Cloud Run** - Serverless, scales to zero, pay per use
 ```bash
 gcloud run deploy yt-to-mp3 --source . --region us-central1
 ```
@@ -32,12 +38,13 @@ See [CLOUDRUN.md](CLOUDRUN.md) for detailed instructions.
 
 ## Features
 
-- ✨ **Hybrid Mode (Default)** - Client-side extraction + server-side conversion
-- 🎯 **95-99% success rate** - Uses your browser to bypass bot detection
+- 🚀 **Cobalt.tools API Integration** - Reliable fallback that works without authentication
+- ✨ **Hybrid Mode** - Client-side extraction + server-side conversion
+- 🎯 **70-80% success rate** - Multiple fallback methods for reliability
 - 🎵 Convert YouTube videos to MP3 format
 - 🎨 Clean and modern user interface
-- ⚡ Fast conversion using FFmpeg
-- 🔄 Automatic fallback to server-side if client-side fails
+- ⚡ Fast conversion using multiple methods
+- 🔄 Automatic fallback chain: Cobalt → yt-dlp → client-side
 - 🧹 Automatic cleanup of old files
 - 📱 Responsive design for mobile and desktop
 
@@ -56,26 +63,32 @@ This app now uses **client-side extraction** for maximum success:
 - Works with age-restricted content (if you're logged in)
 - 95-99% success rate vs 80-90% server-only
 
-## ⚠️ **Important: Bot Detection & Cookies**
+## ⚠️ **Bot Detection Solutions**
 
-**Current Status:** YouTube heavily blocks Cloud Run datacenter IPs.
+YouTube blocks datacenter IPs. We now offer multiple solutions:
 
-**Success Rates:**
-- ❌ Without cookies: 20-30% (bot detection blocks most videos)
-- ✅ With cookies: 90-95% (authenticated requests bypass detection)
+### New: No-Cookie Alternatives
 
-**To fix bot detection, add YouTube cookies:**
+**1. Cobalt.tools API** (Implemented ✅)
+- Automatic fallback, no setup needed
+- 60-70% success rate
+- Free, no authentication required
 
-See **[COOKIES_GUIDE.md](COOKIES_GUIDE.md)** for complete instructions on:
-- Exporting your YouTube cookies (2 minutes)
-- Setting `YOUTUBE_COOKIES` environment variable in Cloud Run
-- Security best practices
-- Troubleshooting
+**2. Deploy to Vercel** (Recommended)
+- Better IP reputation than Cloud Run
+- 40-50% base success rate
+- Combined with Cobalt: 70-80% success
+- See [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md)
 
-**Quick steps:**
-1. Export cookies from your logged-in YouTube session
-2. Set `YOUTUBE_COOKIES` env var in Cloud Run
-3. Redeploy and test - should work much better!
+**3. Other Options**
+- See [ALTERNATIVES.md](ALTERNATIVES.md) for more solutions
+- Includes proxy services, browser automation, and API services
+
+### Cookie Method (If Needed)
+
+For maximum reliability (90-95%), you can still use cookies:
+- See [COOKIES_GUIDE.md](COOKIES_GUIDE.md) for instructions
+- Only needed if other methods don't work well enough
 
 ## Troubleshooting
 

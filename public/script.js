@@ -260,7 +260,8 @@ async function convertVideoServerSide(url) {
 
     // Hide progress and show success
     progressDiv.classList.add('hidden');
-    showStatus('✅ Conversion successful! (Server mode)', 'success');
+    const method = data.method === 'cobalt' ? 'Cobalt.tools API' : 'yt-dlp';
+    showStatus(`✅ Conversion successful! (${method})`, 'success');
 
     // Show download button
     resultDiv.innerHTML = `
@@ -271,7 +272,7 @@ async function convertVideoServerSide(url) {
         Download MP3
       </a>
       <p style="margin-top: 10px; font-size: 0.85rem; color: #666;">
-        🔄 Used server-side mode
+        ${data.method === 'cobalt' ? '🚀 Used Cobalt.tools API (no auth needed)' : '🔄 Used yt-dlp (server-side)'}
       </p>
     `;
     resultDiv.classList.remove('hidden');
