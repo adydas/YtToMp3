@@ -39,34 +39,84 @@ async function extractYouTubeStreams(url) {
     const data = await response.json();
     const html = data.html;
 
-    // Extract ytInitialPlayerResponse JSON
-    const playerResponseMatch = html.match(/var ytInitialPlayerResponse = ({.+?});/);
-    if (!playerResponseMatch) {
-      throw new Error('Could not find player response');
+    // Extract ytInitialPlayerResponse JSON - try multiple patterns
+    let playerResponse = null;
+
+    // Pattern 1: var ytInitialPlayerResponse = {...}
+    let match = html.match(/var ytInitialPlayerResponse\s*=\s*(\{.+?\});/s);
+    if (!match) {
+      // Pattern 2: window.ytInitialPlayerResponse = {...}
+      match = html.match(/window\["ytInitialPlayerResponse"\]\s*=\s*(\{.+?\});/s);
+    }
+    if (!match) {
+      // Pattern 3: Between script tags
+      match = html.match(/ytInitialPlayerResponse\s*=\s*(\{[^<]+\});/s);
     }
 
-    const playerResponse = JSON.parse(playerResponseMatch[1]);
+    if (!match) {
+      console.error('Could not find ytInitialPlayerResponse in HTML');
+      console.log('HTML length:', html.length);
+      console.log('HTML preview:', html.substring(0, 500));
+      throw new Error('Could not find player response in page');
+    }
+
+    try {
+      playerResponse = JSON.parse(match[1]);
+    } catch (parseError) {
+      console.error('Failed to parse player response:', parseError);
+      console.log('Matched string:', match[1].substring(0, 200));
+      throw new Error('Failed to parse player response JSON');
+    }
+
+    console.log('Player response:', playerResponse);
 
     // Check for playability issues
     if (playerResponse.playabilityStatus?.status !== 'OK') {
       const reason = playerResponse.playabilityStatus?.reason || 'Video unavailable';
+      console.error('Video not playable:', reason);
       throw new Error(reason);
     }
 
     // Get video details
     const videoDetails = playerResponse.videoDetails;
+    if (!videoDetails) {
+      throw new Error('No video details found');
+    }
+
+    console.log('Video title:', videoDetails.title);
 
     // Extract audio streams
-    const formats = playerResponse.streamingData?.adaptiveFormats || [];
-    const audioFormats = formats.filter(f => f.mimeType?.includes('audio'));
+    const streamingData = playerResponse.streamingData;
+    if (!streamingData) {
+      throw new Error('No streaming data found');
+    }
+
+    const formats = streamingData.adaptiveFormats || streamingData.formats || [];
+    const audioFormats = formats.filter(f =>
+      f.mimeType?.includes('audio') ||
+      (f.audioQuality && !f.qualityLabel)
+    );
+
+    console.log('Found audio formats:', audioFormats.length);
 
     if (audioFormats.length === 0) {
+      console.error('No audio streams. Available formats:', formats.length);
       throw new Error('No audio streams found');
     }
 
     // Select best audio quality
     audioFormats.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
     const bestAudio = audioFormats[0];
+
+    if (!bestAudio.url) {
+      console.error('Best audio has no URL:', bestAudio);
+      throw new Error('Audio stream has no URL');
+    }
+
+    console.log('Selected audio:', {
+      bitrate: bestAudio.bitrate,
+      mimeType: bestAudio.mimeType
+    });
 
     return {
       videoId,
