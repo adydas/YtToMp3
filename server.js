@@ -23,6 +23,23 @@ if (!fs.existsSync(downloadsDir)) {
   fs.mkdirSync(downloadsDir);
 }
 
+// Setup YouTube cookies if provided (helps bypass bot detection)
+const cookiesPath = path.join(__dirname, 'youtube-cookies.txt');
+if (process.env.YOUTUBE_COOKIES) {
+  // Convert cookie string to Netscape format for yt-dlp
+  const cookieLines = process.env.YOUTUBE_COOKIES.split(';').map(cookie => {
+    const [name, value] = cookie.trim().split('=');
+    // Netscape format: domain, flag, path, secure, expiration, name, value
+    return `.youtube.com\tTRUE\t/\tTRUE\t0\t${name}\t${value}`;
+  });
+
+  const cookieContent = `# Netscape HTTP Cookie File\n${cookieLines.join('\n')}`;
+  fs.writeFileSync(cookiesPath, cookieContent);
+  console.log('YouTube cookies configured for yt-dlp');
+} else {
+  console.log('⚠️  No YouTube cookies set. Bot detection likely. Set YOUTUBE_COOKIES env var.');
+}
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
@@ -51,7 +68,9 @@ app.post('/api/convert', async (req, res) => {
 
     // Use yt-dlp to download and convert to MP3
     // Using mobile clients (android, ios) which have better bot bypass
+    const cookiesArg = fs.existsSync(cookiesPath) ? `--cookies "${cookiesPath}"` : '';
     const command = `yt-dlp -x --audio-format mp3 --audio-quality 128K \
+      ${cookiesArg} \
       --extractor-args "youtube:player_client=android,ios,web" \
       --user-agent "com.google.android.youtube/19.09.37 (Linux; U; Android 13) gzip" \
       --add-header "Accept-Language:en-US,en" \
@@ -60,6 +79,7 @@ app.post('/api/convert', async (req, res) => {
       -o "${outputTemplate}" "${url}"`;
 
     console.log('Downloading and converting:', url);
+    console.log('Using cookies:', fs.existsSync(cookiesPath) ? 'Yes' : 'No');
     const { stdout, stderr } = await execAsync(command, { maxBuffer: 1024 * 1024 * 10 });
 
     console.log('yt-dlp output:', stdout);
@@ -140,13 +160,24 @@ app.post('/api/fetch-youtube', async (req, res) => {
     const https = require('https');
     const url = `https://www.youtube.com/watch?v=${videoId}`;
 
-    https.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-      }
-    }, (ytResponse) => {
+    // Prepare headers with optional cookies
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Referer': 'https://www.youtube.com/',
+      'Origin': 'https://www.youtube.com'
+    };
+
+    // Add cookies if available (helps bypass bot detection)
+    if (process.env.YOUTUBE_COOKIES) {
+      headers['Cookie'] = process.env.YOUTUBE_COOKIES;
+      console.log('Using YouTube cookies for authentication');
+    } else {
+      console.log('No YouTube cookies configured (may hit bot detection)');
+    }
+
+    https.get(url, { headers }, (ytResponse) => {
       let html = '';
 
       ytResponse.on('data', (chunk) => {

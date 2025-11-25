@@ -6,3 +6,7 @@ downloads/
 .DS_Store
 .env
 *-player-script.js
+
+# YouTube authentication (contains sensitive cookies)
+youtube-cookies.txt
+*cookies.txt

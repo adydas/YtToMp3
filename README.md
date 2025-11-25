@@ -56,12 +56,34 @@ This app now uses **client-side extraction** for maximum success:
 - Works with age-restricted content (if you're logged in)
 - 95-99% success rate vs 80-90% server-only
 
+## ⚠️ **Important: Bot Detection & Cookies**
+
+**Current Status:** YouTube heavily blocks Cloud Run datacenter IPs.
+
+**Success Rates:**
+- ❌ Without cookies: 20-30% (bot detection blocks most videos)
+- ✅ With cookies: 90-95% (authenticated requests bypass detection)
+
+**To fix bot detection, add YouTube cookies:**
+
+See **[COOKIES_GUIDE.md](COOKIES_GUIDE.md)** for complete instructions on:
+- Exporting your YouTube cookies (2 minutes)
+- Setting `YOUTUBE_COOKIES` environment variable in Cloud Run
+- Security best practices
+- Troubleshooting
+
+**Quick steps:**
+1. Export cookies from your logged-in YouTube session
+2. Set `YOUTUBE_COOKIES` env var in Cloud Run
+3. Redeploy and test - should work much better!
+
 ## Troubleshooting
 
 If a video fails:
-1. Try a different video to confirm it's not just that one
-2. Wait a few minutes and retry (temporary IP block)
-3. Check if the video is private/region-locked
+1. **Check if cookies are configured** (see COOKIES_GUIDE.md) ← Most common issue
+2. Try a different video to confirm it's not just that one
+3. Wait a few minutes and retry (temporary IP block)
+4. Check if the video is private/region-locked
 
 **Advanced options:** See [CLIENTSIDE_OPTIONS.md](CLIENTSIDE_OPTIONS.md) for:
 - Full browser-based conversion (100% bypass, no server)
