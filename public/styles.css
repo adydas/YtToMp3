@@ -178,6 +178,37 @@ button:disabled {
   margin-bottom: 8px;
 }
 
+.feature-box {
+  margin: 20px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  border-left: 4px solid #667eea;
+  border-radius: 10px;
+}
+
+.feature-box h4 {
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.feature-box p {
+  color: #555;
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+}
+
+.feature-box ul {
+  margin-left: 20px;
+  color: #555;
+  line-height: 1.8;
+}
+
+.feature-box ul li {
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
 .note {
   margin-top: 20px;
   padding: 15px;

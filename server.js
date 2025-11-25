@@ -89,6 +89,44 @@ app.post('/api/convert', async (req, res) => {
   }
 });
 
+// Route to convert from client-extracted stream URL (hybrid mode)
+app.post('/api/convert-from-stream', async (req, res) => {
+  try {
+    const { streamUrl, title, videoId } = req.body;
+
+    if (!streamUrl) {
+      return res.status(400).json({ error: 'Stream URL is required' });
+    }
+
+    const timestamp = Date.now();
+    const safeTitle = (title || 'video').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
+    const filename = `${safeTitle}-${timestamp}.mp3`;
+    const outputPath = path.join(downloadsDir, filename);
+
+    console.log('Converting from stream URL:', { videoId, title });
+
+    // Use FFmpeg to download from stream URL and convert to MP3
+    const command = `ffmpeg -i "${streamUrl}" -vn -acodec libmp3lame -q:a 2 -y "${outputPath}"`;
+
+    await execAsync(command, {
+      timeout: 300000, // 5 minutes
+      maxBuffer: 1024 * 1024 * 50 // 50MB buffer
+    });
+
+    console.log('Stream conversion finished:', filename);
+
+    res.json({
+      success: true,
+      filename: filename,
+      title: safeTitle
+    });
+
+  } catch (error) {
+    console.error('Stream conversion error:', error);
+    res.status(500).json({ error: 'Failed to convert stream: ' + error.message });
+  }
+});
+
 // Route to download converted MP3
 app.get('/api/download/:filename', (req, res) => {
   const filename = req.params.filename;

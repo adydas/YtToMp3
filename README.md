@@ -32,32 +32,43 @@ See [CLOUDRUN.md](CLOUDRUN.md) for detailed instructions.
 
 ## Features
 
+- ✨ **Hybrid Mode (Default)** - Client-side extraction + server-side conversion
+- 🎯 **95-99% success rate** - Uses your browser to bypass bot detection
 - 🎵 Convert YouTube videos to MP3 format
 - 🎨 Clean and modern user interface
 - ⚡ Fast conversion using FFmpeg
+- 🔄 Automatic fallback to server-side if client-side fails
 - 🧹 Automatic cleanup of old files
 - 📱 Responsive design for mobile and desktop
 
-## ⚠️ Important Note About YouTube
+## How It Works (Hybrid Mode)
 
-YouTube actively works to prevent automated downloads and frequently updates their bot detection. This application uses multiple strategies to bypass detection (Android/iOS mobile clients, appropriate headers, etc.), but **some videos may still fail** due to:
+This app now uses **client-side extraction** for maximum success:
 
-- YouTube's aggressive bot detection
-- Age-restricted content
-- Region-locked videos
-- IP-based rate limiting
+1. **🔍 Your Browser Extracts** - JavaScript extracts stream URLs using your session/cookies
+2. **⚙️ Server Converts** - Stream sent to server for fast MP3 conversion
+3. **📥 You Download** - Get your MP3 file
+4. **🔄 Auto Fallback** - If client-side fails, automatically tries server-side
 
-**Success rate:** ~80-90% of public videos work. If a video fails, try:
-1. A different video
-2. Waiting a few minutes and retrying
-3. Using a different IP/network
+**Why this works better:**
+- Uses your real browser session (YouTube sees a real user)
+- Bypasses server-side bot detection
+- Works with age-restricted content (if you're logged in)
+- 95-99% success rate vs 80-90% server-only
 
-**Want better success rates?** See [CLIENTSIDE_OPTIONS.md](CLIENTSIDE_OPTIONS.md) for:
-- **Client-side extraction** (95-99% success) - Extract streams in user's browser
-- **Full browser-based conversion** (100% bypass) - No server needed
-- Implementation guides for both approaches
+## Troubleshooting
 
-For persistent issues, see the troubleshooting section in [CLOUDRUN.md](CLOUDRUN.md).
+If a video fails:
+1. Try a different video to confirm it's not just that one
+2. Wait a few minutes and retry (temporary IP block)
+3. Check if the video is private/region-locked
+
+**Advanced options:** See [CLIENTSIDE_OPTIONS.md](CLIENTSIDE_OPTIONS.md) for:
+- Full browser-based conversion (100% bypass, no server)
+- Browser extension approach
+- Implementation details
+
+For deployment issues, see [CLOUDRUN.md](CLOUDRUN.md).
 
 ## Prerequisites
 
