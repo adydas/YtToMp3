@@ -1,0 +1,23 @@
+# This file specifies files that are *not* uploaded to Google Cloud
+# using gcloud. It follows the same syntax as .gitignore
+
+.git
+.gitignore
+node_modules/
+downloads/
+*.mp3
+*.mp4
+*.webm
+.DS_Store
+.env
+*-player-script.js
+
+# Documentation
+README.md
+DEPLOYMENT.md
+GITHUB_SETUP.md
+
+# Development files
+.env.example
+docker-compose.yml
+Procfile

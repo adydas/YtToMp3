@@ -18,7 +18,17 @@ npm start
 
 Visit `http://localhost:3000` and start converting!
 
-For deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
+## Deployment
+
+Deploy to the cloud in minutes:
+
+**Google Cloud Run** (Recommended) - Serverless, scales to zero, pay per use
+```bash
+gcloud run deploy yt-to-mp3 --source . --region us-central1
+```
+See [CLOUDRUN.md](CLOUDRUN.md) for detailed instructions.
+
+**Other platforms:** Docker, Railway, Heroku, VPS - See [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ## Features
 

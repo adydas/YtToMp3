@@ -200,6 +200,31 @@ docker-compose down
 
 ## Cloud Platform Deployment
 
+### Google Cloud Run (Recommended)
+
+**See [CLOUDRUN.md](CLOUDRUN.md) for detailed instructions.**
+
+Quick deploy:
+```bash
+gcloud run deploy yt-to-mp3 \
+  --source . \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --memory 2Gi \
+  --timeout 3600
+```
+
+**Pros:**
+- Serverless, scales to zero
+- Pay only for actual usage
+- Handles high traffic automatically
+- Fast global deployment
+
+**Cons:**
+- Request timeout limit (60 min max)
+- Cold start delay on first request
+
 ### Railway
 
 1. Push your code to GitHub
