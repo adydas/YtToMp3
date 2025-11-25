@@ -50,10 +50,13 @@ app.post('/api/convert', async (req, res) => {
     const outputTemplate = path.join(downloadsDir, `video-${timestamp}.%(ext)s`);
 
     // Use yt-dlp to download and convert to MP3
-    // Added extractor args to bypass bot detection and use proper player client
+    // Using mobile clients (android, ios) which have better bot bypass
     const command = `yt-dlp -x --audio-format mp3 --audio-quality 128K \
-      --extractor-args "youtube:player_client=default" \
-      --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+      --extractor-args "youtube:player_client=android,ios,web" \
+      --user-agent "com.google.android.youtube/19.09.37 (Linux; U; Android 13) gzip" \
+      --add-header "Accept-Language:en-US,en" \
+      --add-header "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+      --no-check-certificate \
       -o "${outputTemplate}" "${url}"`;
 
     console.log('Downloading and converting:', url);

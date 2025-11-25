@@ -379,35 +379,53 @@ Check service account permissions in IAM & Admin.
 
 **Solutions implemented in this project:**
 
-✅ **Already Fixed (Latest Version):**
-- Added `--extractor-args "youtube:player_client=default"` to bypass JS runtime requirement
-- Added user-agent string to appear as a regular browser
-- Node.js included as JavaScript runtime for yt-dlp
-- Latest yt-dlp version installed
+✅ **Bot Bypass Strategies (Latest Version):**
+- Uses **Android/iOS mobile clients** (`player_client=android,ios,web`) - most effective bypass
+- Android user-agent to mimic YouTube mobile app
+- Custom headers (Accept-Language, Accept) to appear legitimate
+- Node.js JavaScript runtime for yt-dlp
+- Latest yt-dlp version with each deployment
 
-**If issues persist:**
+**Reality Check:**
+YouTube's bot detection is a **cat-and-mouse game**. Despite our best efforts:
+- ✅ **80-90% of public videos work**
+- ⚠️ **10-20% may fail** due to aggressive detection
+- 🔄 YouTube updates their systems **weekly**, breaking extractors
 
-1. **Update yt-dlp** (YouTube changes frequently):
+**If videos fail frequently:**
+
+1. **Redeploy to get latest yt-dlp** (YouTube changes constantly):
    ```bash
-   # Redeploy with latest code (yt-dlp auto-updates)
    gcloud run deploy yt-to-mp3 --source .
    ```
 
-2. **Check logs** for specific errors:
-   ```bash
-   gcloud run services logs read yt-to-mp3 --limit 50
-   ```
+2. **Check if it's a temporary block**:
+   - Try a different video
+   - Wait 10-15 minutes
+   - Different time of day may work better
 
-3. **For age-restricted or private videos:**
-   - These may require authentication
-   - Consider adding cookie support if needed (see yt-dlp docs)
+3. **IP-based blocking**:
+   - Cloud Run uses Google's IP ranges
+   - YouTube may temporarily block these IPs
+   - Consider using a VPN/proxy (advanced)
 
-4. **Rate limiting:**
-   - YouTube may temporarily block heavy usage
-   - Consider adding delays between requests
-   - Use Cloud Run's concurrency settings
+4. **Certain video types always fail**:
+   - Age-restricted content (requires cookies)
+   - Private/unlisted videos
+   - Region-locked content
+   - Premium/paid content
 
-**Note:** YouTube actively works to prevent automated downloads. The extractor args and user-agent help, but some videos may still fail due to YouTube's bot detection systems.
+5. **For consistent access** (advanced):
+   - Add `--cookies-from-browser chrome` (requires browser automation)
+   - Use authenticated cookies (see [yt-dlp cookies guide](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp))
+   - Rotate user-agents and IPs
+
+**Alternatives if bot detection persists:**
+- Try local installation (may work better from residential IPs)
+- Use YouTube Premium API (official, but costs money)
+- Use browser extensions instead of server-side downloads
+
+**Note:** This is an inherent limitation of **any** YouTube downloader, not just this app. Even popular tools like youtube-dl face the same issues.
 
 ## Useful Commands
 

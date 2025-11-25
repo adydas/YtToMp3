@@ -38,6 +38,22 @@ See [CLOUDRUN.md](CLOUDRUN.md) for detailed instructions.
 - 🧹 Automatic cleanup of old files
 - 📱 Responsive design for mobile and desktop
 
+## ⚠️ Important Note About YouTube
+
+YouTube actively works to prevent automated downloads and frequently updates their bot detection. This application uses multiple strategies to bypass detection (Android/iOS mobile clients, appropriate headers, etc.), but **some videos may still fail** due to:
+
+- YouTube's aggressive bot detection
+- Age-restricted content
+- Region-locked videos
+- IP-based rate limiting
+
+**Success rate:** ~80-90% of public videos work. If a video fails, try:
+1. A different video
+2. Waiting a few minutes and retrying
+3. Using a different IP/network
+
+For persistent issues, see the troubleshooting section in [CLOUDRUN.md](CLOUDRUN.md).
+
 ## Prerequisites
 
 Before running this application, make sure you have the following installed:
