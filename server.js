@@ -50,10 +50,14 @@ app.post('/api/convert', async (req, res) => {
     const outputTemplate = path.join(downloadsDir, `video-${timestamp}.%(ext)s`);
 
     // Use yt-dlp to download and convert to MP3
-    const command = `yt-dlp -x --audio-format mp3 --audio-quality 128K -o "${outputTemplate}" "${url}"`;
+    // Added extractor args to bypass bot detection and use proper player client
+    const command = `yt-dlp -x --audio-format mp3 --audio-quality 128K \
+      --extractor-args "youtube:player_client=default" \
+      --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+      -o "${outputTemplate}" "${url}"`;
 
     console.log('Downloading and converting:', url);
-    const { stdout, stderr } = await execAsync(command);
+    const { stdout, stderr } = await execAsync(command, { maxBuffer: 1024 * 1024 * 10 });
 
     console.log('yt-dlp output:', stdout);
     if (stderr) console.log('yt-dlp stderr:', stderr);

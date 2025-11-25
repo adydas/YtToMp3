@@ -1,12 +1,17 @@
 FROM node:20-slim
 
-# Install FFmpeg and yt-dlp
+# Install FFmpeg, yt-dlp, and dependencies
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     python3 \
     python3-pip \
-    && pip3 install --break-system-packages yt-dlp \
+    ca-certificates \
+    curl \
+    && pip3 install --break-system-packages --upgrade yt-dlp \
     && rm -rf /var/lib/apt/lists/*
+
+# Verify Node.js is available for yt-dlp JavaScript runtime
+RUN node --version && which node
 
 WORKDIR /app
 

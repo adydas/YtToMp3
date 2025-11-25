@@ -370,6 +370,45 @@ gcloud run services update yt-to-mp3 --timeout 3600
 ### Permission Denied
 Check service account permissions in IAM & Admin.
 
+### YouTube Bot Detection / "Sign in to confirm you're not a bot"
+
+**Symptoms:**
+- Error: "Sign in to confirm you're not a bot"
+- Warning: "No supported JavaScript runtime could be found"
+- 403 or extraction errors
+
+**Solutions implemented in this project:**
+
+✅ **Already Fixed (Latest Version):**
+- Added `--extractor-args "youtube:player_client=default"` to bypass JS runtime requirement
+- Added user-agent string to appear as a regular browser
+- Node.js included as JavaScript runtime for yt-dlp
+- Latest yt-dlp version installed
+
+**If issues persist:**
+
+1. **Update yt-dlp** (YouTube changes frequently):
+   ```bash
+   # Redeploy with latest code (yt-dlp auto-updates)
+   gcloud run deploy yt-to-mp3 --source .
+   ```
+
+2. **Check logs** for specific errors:
+   ```bash
+   gcloud run services logs read yt-to-mp3 --limit 50
+   ```
+
+3. **For age-restricted or private videos:**
+   - These may require authentication
+   - Consider adding cookie support if needed (see yt-dlp docs)
+
+4. **Rate limiting:**
+   - YouTube may temporarily block heavy usage
+   - Consider adding delays between requests
+   - Use Cloud Run's concurrency settings
+
+**Note:** YouTube actively works to prevent automated downloads. The extractor args and user-agent help, but some videos may still fail due to YouTube's bot detection systems.
+
 ## Useful Commands
 
 ```bash
