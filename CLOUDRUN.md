@@ -25,6 +25,25 @@ Deploy your YouTube to MP3 converter to Google Cloud Run - a fully managed serve
 - **Cold Starts**: First request may be slower
 - **Memory Limits**: Default 512MB, increase if needed
 
+## Docker Configuration
+
+This project is **optimized for Cloud Run** with:
+
+✅ **Dockerfile includes:**
+- FFmpeg for audio conversion
+- yt-dlp for YouTube downloads
+- Python 3 (required by yt-dlp)
+- Non-root user for security
+- Proper port configuration (8080)
+
+✅ **.dockerignore excludes:**
+- node_modules (speeds up builds)
+- Documentation files
+- Development files
+- Reduces build context size
+
+**No additional configuration needed** - the Dockerfile works out-of-the-box with Cloud Build!
+
 ## Quick Deploy
 
 ### Option 1: Deploy with One Command
@@ -87,6 +106,48 @@ gcloud run deploy $SERVICE_NAME \
   --min-instances 0 \
   --set-env-vars "NODE_ENV=production,MAX_FILE_AGE_MS=1800000,CLEANUP_INTERVAL_MS=300000"
 ```
+
+### Option 3: Deploy via Cloud Run Console (GitHub Integration)
+
+1. **Go to Cloud Run Console**: https://console.cloud.google.com/run
+
+2. **Click "CREATE SERVICE"**
+
+3. **Set up continuous deployment from a repository:**
+   - Click "Continuously deploy new revisions from a source repository"
+   - Click "SET UP WITH CLOUD BUILD"
+   - Authenticate with GitHub
+   - Select repository: `adydas/YtToMp3`
+   - Branch: `^main$`
+
+4. **Build Configuration:**
+   - **Build Type:** Select **"Dockerfile"** ✅ (NOT Buildpacks)
+   - **Source location:** `/Dockerfile` (auto-detected)
+   - Click "SAVE"
+
+5. **Configure Service Settings:**
+   - Service name: `yt-to-mp3`
+   - Region: `us-central1` (or your preferred region)
+   - Authentication: Allow unauthenticated invocations
+
+6. **Container Settings:**
+   - Container port: `8080` (Cloud Run auto-detects from Dockerfile)
+   - Memory: `2 GiB`
+   - CPU: `2`
+   - Request timeout: `3600` seconds (1 hour)
+   - Maximum instances: `10`
+   - Minimum instances: `0`
+
+7. **Environment Variables** (Variables & Secrets tab):
+   ```
+   NODE_ENV=production
+   MAX_FILE_AGE_MS=1800000
+   CLEANUP_INTERVAL_MS=300000
+   ```
+
+8. **Click "CREATE"**
+
+Cloud Build will automatically build from your GitHub repo using the Dockerfile whenever you push to main!
 
 ## Configuration Explained
 

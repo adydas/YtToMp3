@@ -19,11 +19,18 @@ RUN npm ci --only=production
 # Copy application files
 COPY . .
 
-# Create downloads directory
-RUN mkdir -p downloads
+# Create downloads directory with proper permissions
+RUN mkdir -p downloads && chmod 755 downloads
 
-# Expose port
-EXPOSE 3000
+# Create a non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser \
+    && chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Cloud Run sets PORT env variable, expose it (default 8080)
+EXPOSE 8080
 
 # Start application
 CMD ["node", "server.js"]
