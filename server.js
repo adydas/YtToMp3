@@ -127,6 +127,46 @@ app.post('/api/convert-from-stream', async (req, res) => {
   }
 });
 
+// Proxy endpoint to fetch YouTube page (avoids CORS in browser)
+app.post('/api/fetch-youtube', async (req, res) => {
+  try {
+    const { videoId } = req.body;
+
+    if (!videoId) {
+      return res.status(400).json({ error: 'Video ID is required' });
+    }
+
+    // Fetch YouTube page from server (no CORS restrictions)
+    const https = require('https');
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+
+    https.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      }
+    }, (ytResponse) => {
+      let html = '';
+
+      ytResponse.on('data', (chunk) => {
+        html += chunk;
+      });
+
+      ytResponse.on('end', () => {
+        res.json({ html });
+      });
+    }).on('error', (error) => {
+      console.error('YouTube fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch YouTube page' });
+    });
+
+  } catch (error) {
+    console.error('Proxy error:', error);
+    res.status(500).json({ error: 'Proxy failed: ' + error.message });
+  }
+});
+
 // Route to download converted MP3
 app.get('/api/download/:filename', (req, res) => {
   const filename = req.params.filename;

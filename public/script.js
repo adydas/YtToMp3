@@ -23,19 +23,21 @@ async function extractYouTubeStreams(url) {
   }
 
   try {
-    // Fetch YouTube page (uses user's cookies/session)
-    const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      credentials: 'include',
+    // Fetch YouTube page through our proxy (avoids CORS)
+    const response = await fetch('/api/fetch-youtube', {
+      method: 'POST',
       headers: {
-        'Accept-Language': 'en-US,en;q=0.9',
-      }
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ videoId }),
     });
 
     if (!response.ok) {
       throw new Error('Failed to fetch YouTube page');
     }
 
-    const html = await response.text();
+    const data = await response.json();
+    const html = data.html;
 
     // Extract ytInitialPlayerResponse JSON
     const playerResponseMatch = html.match(/var ytInitialPlayerResponse = ({.+?});/);
