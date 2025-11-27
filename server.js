@@ -27,17 +27,37 @@ if (!fs.existsSync(downloadsDir)) {
 const cookiesPath = path.join(__dirname, 'youtube-cookies.txt');
 if (process.env.YOUTUBE_COOKIES) {
   // Convert cookie string to Netscape format for yt-dlp
-  const cookieLines = process.env.YOUTUBE_COOKIES.split(';').map(cookie => {
-    const [name, value] = cookie.trim().split('=');
-    // Netscape format: domain, flag, path, secure, expiration, name, value
-    return `.youtube.com\tTRUE\t/\tTRUE\t0\t${name}\t${value}`;
-  });
+  const cookieLines = process.env.YOUTUBE_COOKIES.split(';')
+    .map(cookie => cookie.trim())
+    .filter(cookie => cookie) // Remove empty strings
+    .map(cookie => {
+      const equalIndex = cookie.indexOf('=');
+      if (equalIndex === -1) return null;
 
-  const cookieContent = `# Netscape HTTP Cookie File\n${cookieLines.join('\n')}`;
+      const name = cookie.substring(0, equalIndex).trim();
+      const value = cookie.substring(equalIndex + 1).trim();
+
+      // Netscape format: domain, flag, path, secure, expiration, name, value
+      // Using longer expiration (year 2030) for better persistence
+      return `.youtube.com\tTRUE\t/\tTRUE\t1893456000\t${name}\t${value}`;
+    })
+    .filter(line => line); // Remove null entries
+
+  const cookieContent = `# Netscape HTTP Cookie File
+# This file is generated from YOUTUBE_COOKIES environment variable
+${cookieLines.join('\n')}`;
+
   fs.writeFileSync(cookiesPath, cookieContent);
-  console.log('YouTube cookies configured for yt-dlp');
+  console.log(`✓ YouTube cookies configured (${cookieLines.length} cookies)`);
+
+  // Log important cookies for debugging (without values)
+  const importantCookies = ['CONSENT', '__Secure-1PSID', '__Secure-3PSID', 'LOGIN_INFO', 'VISITOR_INFO1_LIVE', 'YSC'];
+  const foundCookies = cookieLines.map(line => line.split('\t')[5]).filter(name => importantCookies.includes(name));
+  console.log('Important cookies found:', foundCookies.join(', ') || 'None');
 } else {
-  console.log('⚠️  No YouTube cookies set. Bot detection likely. Set YOUTUBE_COOKIES env var.');
+  console.log('⚠️  No YouTube cookies set. Bot detection highly likely!');
+  console.log('   Set YOUTUBE_COOKIES env var with cookies from logged-in YouTube session.');
+  console.log('   Run: node scripts/extract-youtube-cookies.js for instructions.');
 }
 
 // Health check endpoint
@@ -138,19 +158,38 @@ app.post('/api/convert', async (req, res) => {
     const outputTemplate = path.join(downloadsDir, `video-${timestamp}.%(ext)s`);
 
     // Use yt-dlp to download and convert to MP3
-    // Using mobile clients (android, ios) which have better bot bypass
+    // Strategy: Use cookies + web client for better authentication
     const cookiesArg = fs.existsSync(cookiesPath) ? `--cookies "${cookiesPath}"` : '';
-    const command = `yt-dlp -x --audio-format mp3 --audio-quality 128K \
-      ${cookiesArg} \
-      --extractor-args "youtube:player_client=android,ios,web" \
-      --user-agent "com.google.android.youtube/19.09.37 (Linux; U; Android 13) gzip" \
-      --add-header "Accept-Language:en-US,en" \
-      --add-header "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
-      --no-check-certificate \
-      -o "${outputTemplate}" "${url}"`;
 
-    console.log('Downloading and converting with yt-dlp:', url);
-    console.log('Using cookies:', fs.existsSync(cookiesPath) ? 'Yes' : 'No');
+    // Build command with better options for Cloud Run
+    let command = `yt-dlp -x --audio-format mp3 --audio-quality 128K `;
+
+    // Add cookies if available (critical for bypassing bot detection)
+    if (cookiesArg) {
+      command += `${cookiesArg} `;
+    }
+
+    // Use web client when cookies are available, mobile clients as fallback
+    if (fs.existsSync(cookiesPath)) {
+      // With cookies, use web client (most stable with auth)
+      command += `--extractor-args "youtube:player_client=web,android" `;
+    } else {
+      // Without cookies, try mobile clients first (sometimes bypass bot detection)
+      command += `--extractor-args "youtube:player_client=android,ios,web,mweb" `;
+      // Add mobile user agent for android client
+      command += `--user-agent "com.google.android.youtube/19.09.37 (Linux; U; Android 13) gzip" `;
+    }
+
+    // Common options
+    command += `--add-header "Accept-Language:en-US,en" `;
+    command += `--add-header "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" `;
+    command += `--no-check-certificate `;
+    command += `--no-warnings `;
+    command += `-o "${outputTemplate}" "${url}"`;
+
+    console.log('Downloading with yt-dlp:', url);
+    console.log('Using cookies:', fs.existsSync(cookiesPath) ? 'Yes (web client)' : 'No (mobile clients)');
+
     const { stdout, stderr } = await execAsync(command, { maxBuffer: 1024 * 1024 * 10 });
 
     console.log('yt-dlp output:', stdout);

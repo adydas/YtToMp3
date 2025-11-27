@@ -27,9 +27,15 @@ COPY . .
 # Create downloads directory with proper permissions
 RUN mkdir -p downloads && chmod 755 downloads
 
+# Create scripts directory if it exists in the build context
+RUN mkdir -p scripts && chmod 755 scripts
+
 # Create a non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser \
     && chown -R appuser:appuser /app
+
+# Ensure the app can write cookies file at runtime
+RUN touch youtube-cookies.txt && chmod 666 youtube-cookies.txt
 
 # Switch to non-root user
 USER appuser
