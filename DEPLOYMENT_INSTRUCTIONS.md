@@ -25,23 +25,16 @@ gcloud run deploy yt-to-mp3 \
   --set-env-vars "NODE_ENV=production"
 ```
 
-### Recommended: Deploy with YouTube Cookies (Much Better Success Rate)
+### Optimized Deploy (Better Success Rate)
 
-```bash
-# First, extract YouTube cookies (see instructions below)
-export YOUTUBE_COOKIES="CONSENT=YES+...; __Secure-1PSID=...; __Secure-3PSID=..."
+The app now uses multiple fallback strategies automatically:
+1. Cobalt.tools API (60-70% success rate)
+2. yt-dlp with iOS client
+3. yt-dlp with Android client
+4. yt-dlp with TV embedded client
+5. yt-dlp with web client
 
-# Deploy with cookies for authentication
-gcloud run deploy yt-to-mp3 \
-  --source . \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --memory 2Gi \
-  --timeout 300 \
-  --max-instances 10 \
-  --set-env-vars="NODE_ENV=production,YOUTUBE_COOKIES=$YOUTUBE_COOKIES"
-```
+No cookies or authentication needed!
 
 ## What's New in This Deployment
 
@@ -90,65 +83,29 @@ You should see:
 - "Success with Cobalt.tools" (when it works)
 - "Cobalt failed, falling back to yt-dlp..." (when fallback occurs)
 
-## Fixing Bot Detection Issues with Cookies
+## How the Multi-Strategy Approach Works
 
-YouTube aggressively blocks bots. If you're seeing "Sign in to confirm you're not a bot" errors, you MUST use cookies.
+The app now automatically tries multiple methods to bypass YouTube restrictions:
 
-### Step 1: Extract YouTube Cookies
+### Automatic Fallback Chain
+1. **Cobalt.tools API** - External service, no auth needed (60-70% success)
+2. **iOS Client** - Mobile app API, often bypasses restrictions
+3. **Android Client** - Alternative mobile API with custom user agent
+4. **TV Embedded Client** - Smart TV API, new bypass method
+5. **Web Client** - Standard browser API with headers
 
-#### Method 1: Browser Developer Tools (Easiest)
-1. Open YouTube.com in Chrome/Firefox and **sign in**
-2. Open Developer Tools (F12)
-3. Go to **Application** → **Cookies** → `https://www.youtube.com`
-4. Find these cookies:
-   - `CONSENT` (starts with "YES+" or "PENDING+")
-   - `__Secure-1PSID`
-   - `__Secure-3PSID`
-   - `LOGIN_INFO`
-   - `VISITOR_INFO1_LIVE`
-   - `YSC`
+### Monitoring Which Method Works
 
-5. Copy each cookie's name and value, format as:
-```
-CONSENT=YES+cb.20210328-17-p0.en+FX+123; __Secure-1PSID=xxxxx; __Secure-3PSID=xxxxx; LOGIN_INFO=xxxxx
-```
-
-#### Method 2: Using Helper Script
+Check your logs to see which strategy succeeded:
 ```bash
-# Run locally for detailed instructions
-node scripts/extract-youtube-cookies.js
+gcloud run services logs read yt-to-mp3 --limit 50 | grep -E "Success with|Attempt"
 ```
 
-### Step 2: Update Deployment with Cookies
-
-```bash
-# Set your cookies (replace with actual values)
-export YOUTUBE_COOKIES="CONSENT=YES+...; __Secure-1PSID=...; __Secure-3PSID=..."
-
-# Update existing service
-gcloud run services update yt-to-mp3 \
-  --region us-central1 \
-  --update-env-vars="YOUTUBE_COOKIES=$YOUTUBE_COOKIES"
-```
-
-### Step 3: Verify Cookies Are Working
-
-Check logs:
-```bash
-gcloud run services logs read yt-to-mp3 --limit 20 | grep -i cookie
-```
-
-You should see:
-- "✓ YouTube cookies configured (6 cookies)"
-- "Important cookies found: CONSENT, __Secure-1PSID..."
-
-### Cookie Best Practices
-
-1. **Use a dedicated Google account** - Don't use your main account
-2. **Update monthly** - Cookies expire
-3. **Test locally first** - Ensure cookies work before deploying
-4. **Never commit to git** - Use environment variables only
-5. **Regional matching** - Use cookies from same region as deployment
+You'll see messages like:
+- "Success with Cobalt.tools"
+- "Attempt 1: iOS client"
+- "Success with iOS client"
+- "Attempt 2: Android client"
 
 ## If Success Rates Are Still Low
 

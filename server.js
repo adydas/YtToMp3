@@ -23,42 +23,8 @@ if (!fs.existsSync(downloadsDir)) {
   fs.mkdirSync(downloadsDir);
 }
 
-// Setup YouTube cookies if provided (helps bypass bot detection)
-const cookiesPath = path.join(__dirname, 'youtube-cookies.txt');
-if (process.env.YOUTUBE_COOKIES) {
-  // Convert cookie string to Netscape format for yt-dlp
-  const cookieLines = process.env.YOUTUBE_COOKIES.split(';')
-    .map(cookie => cookie.trim())
-    .filter(cookie => cookie) // Remove empty strings
-    .map(cookie => {
-      const equalIndex = cookie.indexOf('=');
-      if (equalIndex === -1) return null;
-
-      const name = cookie.substring(0, equalIndex).trim();
-      const value = cookie.substring(equalIndex + 1).trim();
-
-      // Netscape format: domain, flag, path, secure, expiration, name, value
-      // Using longer expiration (year 2030) for better persistence
-      return `.youtube.com\tTRUE\t/\tTRUE\t1893456000\t${name}\t${value}`;
-    })
-    .filter(line => line); // Remove null entries
-
-  const cookieContent = `# Netscape HTTP Cookie File
-# This file is generated from YOUTUBE_COOKIES environment variable
-${cookieLines.join('\n')}`;
-
-  fs.writeFileSync(cookiesPath, cookieContent);
-  console.log(`✓ YouTube cookies configured (${cookieLines.length} cookies)`);
-
-  // Log important cookies for debugging (without values)
-  const importantCookies = ['CONSENT', '__Secure-1PSID', '__Secure-3PSID', 'LOGIN_INFO', 'VISITOR_INFO1_LIVE', 'YSC'];
-  const foundCookies = cookieLines.map(line => line.split('\t')[5]).filter(name => importantCookies.includes(name));
-  console.log('Important cookies found:', foundCookies.join(', ') || 'None');
-} else {
-  console.log('⚠️  No YouTube cookies set. Bot detection highly likely!');
-  console.log('   Set YOUTUBE_COOKIES env var with cookies from logged-in YouTube session.');
-  console.log('   Run: node scripts/extract-youtube-cookies.js for instructions.');
-}
+// Note: Cookie authentication removed - too complex for users
+// Using better yt-dlp strategies instead
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -157,43 +123,67 @@ app.post('/api/convert', async (req, res) => {
     const timestamp = Date.now();
     const outputTemplate = path.join(downloadsDir, `video-${timestamp}.%(ext)s`);
 
-    // Use yt-dlp to download and convert to MP3
-    // Strategy: Use cookies + web client for better authentication
-    const cookiesArg = fs.existsSync(cookiesPath) ? `--cookies "${cookiesPath}"` : '';
+    // Try multiple yt-dlp strategies
+    console.log('Trying yt-dlp with various bypass strategies...');
 
-    // Build command with better options for Cloud Run
-    let command = `yt-dlp -x --audio-format mp3 --audio-quality 128K `;
+    // Strategy 1: Try with iOS client (often bypasses restrictions)
+    let command = `yt-dlp -x --audio-format mp3 --audio-quality 128K \
+      --extractor-args "youtube:player_client=ios" \
+      --no-warnings \
+      -o "${outputTemplate}" "${url}"`;
 
-    // Add cookies if available (critical for bypassing bot detection)
-    if (cookiesArg) {
-      command += `${cookiesArg} `;
+    try {
+      console.log('Attempt 1: iOS client');
+      const { stdout, stderr } = await execAsync(command, { maxBuffer: 1024 * 1024 * 10 });
+      console.log('Success with iOS client');
+    } catch (error1) {
+      console.log('iOS client failed:', error1.message);
+
+      // Strategy 2: Try with Android client
+      command = `yt-dlp -x --audio-format mp3 --audio-quality 128K \
+        --extractor-args "youtube:player_client=android" \
+        --user-agent "com.google.android.youtube/19.09.37 (Linux; U; Android 13) gzip" \
+        --no-warnings \
+        -o "${outputTemplate}" "${url}"`;
+
+      try {
+        console.log('Attempt 2: Android client');
+        const { stdout, stderr } = await execAsync(command, { maxBuffer: 1024 * 1024 * 10 });
+        console.log('Success with Android client');
+      } catch (error2) {
+        console.log('Android client failed:', error2.message);
+
+        // Strategy 3: Try TV embedded client (new bypass method)
+        command = `yt-dlp -x --audio-format mp3 --audio-quality 128K \
+          --extractor-args "youtube:player_client=tv_embedded" \
+          --no-warnings \
+          -o "${outputTemplate}" "${url}"`;
+
+        try {
+          console.log('Attempt 3: TV embedded client');
+          const { stdout, stderr } = await execAsync(command, { maxBuffer: 1024 * 1024 * 10 });
+          console.log('Success with TV embedded client');
+        } catch (error3) {
+          console.log('TV embedded client failed:', error3.message);
+
+          // Strategy 4: Last resort - web client with all headers
+          command = `yt-dlp -x --audio-format mp3 --audio-quality 128K \
+            --extractor-args "youtube:player_client=web,mweb" \
+            --add-header "Accept-Language:en-US,en" \
+            --add-header "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+            --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+            --no-warnings \
+            -o "${outputTemplate}" "${url}"`;
+
+          console.log('Attempt 4: Web client with headers');
+          const { stdout, stderr } = await execAsync(command, { maxBuffer: 1024 * 1024 * 10 });
+          console.log('Success with web client');
+        }
+      }
     }
 
-    // Use web client when cookies are available, mobile clients as fallback
-    if (fs.existsSync(cookiesPath)) {
-      // With cookies, use web client (most stable with auth)
-      command += `--extractor-args "youtube:player_client=web,android" `;
-    } else {
-      // Without cookies, try mobile clients first (sometimes bypass bot detection)
-      command += `--extractor-args "youtube:player_client=android,ios,web,mweb" `;
-      // Add mobile user agent for android client
-      command += `--user-agent "com.google.android.youtube/19.09.37 (Linux; U; Android 13) gzip" `;
-    }
-
-    // Common options
-    command += `--add-header "Accept-Language:en-US,en" `;
-    command += `--add-header "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" `;
-    command += `--no-check-certificate `;
-    command += `--no-warnings `;
-    command += `-o "${outputTemplate}" "${url}"`;
-
-    console.log('Downloading with yt-dlp:', url);
-    console.log('Using cookies:', fs.existsSync(cookiesPath) ? 'Yes (web client)' : 'No (mobile clients)');
-
-    const { stdout, stderr } = await execAsync(command, { maxBuffer: 1024 * 1024 * 10 });
-
-    console.log('yt-dlp output:', stdout);
-    if (stderr) console.log('yt-dlp stderr:', stderr);
+    // Command already executed in try-catch blocks above
+    console.log('yt-dlp conversion completed');
 
     // Find the created MP3 file
     const files = fs.readdirSync(downloadsDir);
@@ -271,7 +261,7 @@ app.post('/api/fetch-youtube', async (req, res) => {
     const https = require('https');
     const url = `https://www.youtube.com/watch?v=${videoId}`;
 
-    // Prepare headers with optional cookies
+    // Prepare headers
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Accept-Language': 'en-US,en;q=0.9',
@@ -279,14 +269,6 @@ app.post('/api/fetch-youtube', async (req, res) => {
       'Referer': 'https://www.youtube.com/',
       'Origin': 'https://www.youtube.com'
     };
-
-    // Add cookies if available (helps bypass bot detection)
-    if (process.env.YOUTUBE_COOKIES) {
-      headers['Cookie'] = process.env.YOUTUBE_COOKIES;
-      console.log('Using YouTube cookies for authentication');
-    } else {
-      console.log('No YouTube cookies configured (may hit bot detection)');
-    }
 
     https.get(url, { headers }, (ytResponse) => {
       let html = '';

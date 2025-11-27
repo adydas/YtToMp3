@@ -7,8 +7,11 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     ca-certificates \
     curl \
-    && pip3 install --break-system-packages --upgrade yt-dlp \
+    && pip3 install --break-system-packages --upgrade --force-reinstall yt-dlp \
     && rm -rf /var/lib/apt/lists/*
+
+# Update yt-dlp to latest version on every build
+RUN yt-dlp -U || true
 
 # Verify Node.js is available for yt-dlp JavaScript runtime
 RUN node --version && which node
@@ -27,15 +30,13 @@ COPY . .
 # Create downloads directory with proper permissions
 RUN mkdir -p downloads && chmod 755 downloads
 
-# Create scripts directory if it exists in the build context
-RUN mkdir -p scripts && chmod 755 scripts
-
 # Create a non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser \
     && chown -R appuser:appuser /app
 
-# Ensure the app can write cookies file at runtime
-RUN touch youtube-cookies.txt && chmod 666 youtube-cookies.txt
+# Copy and set permissions for start script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 # Switch to non-root user
 USER appuser
@@ -43,5 +44,5 @@ USER appuser
 # Cloud Run sets PORT env variable, expose it (default 8080)
 EXPOSE 8080
 
-# Start application
-CMD ["node", "server.js"]
+# Start application with update check
+CMD ["/bin/bash", "/app/start.sh"]
